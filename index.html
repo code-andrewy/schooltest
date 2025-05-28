@@ -1,9 +1,9 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title> </title>
+  <title>Chickenpass</title>
   <style>
     * {
       box-sizing: border-box;
@@ -30,7 +30,7 @@
       border-radius: 10px;
       padding: 14px 18px;
       margin: 10px 5px;
-      transition: all 0.3s ease;
+      transition: all 0.4s ease;
     }
 
     input {
@@ -46,7 +46,7 @@
       width: 75%;
       border: 2px solid white;
       background-color: #222;
-      box-shadow: 0 0 12px white;
+      box-shadow: 0 0 12px rgba(255, 255, 255, 0.3);
     }
 
     button {
@@ -85,7 +85,6 @@
     .quick-link:hover {
       background-color: #2a2a2a;
       transform: translateY(-3px);
-      box-shadow: 0 0 10px #fff2;
     }
 
     .quick-link .remove {
@@ -122,10 +121,6 @@
       max-width: 400px;
     }
 
-    .form-group input:focus {
-      width: 75%;
-    }
-
     .suggestions {
       background-color: #1a1a1a;
       color: white;
@@ -138,6 +133,7 @@
       overflow: hidden;
       position: relative;
       z-index: 1000;
+      display: none;
     }
 
     .suggestions div {
@@ -150,8 +146,18 @@
       background-color: #333;
     }
 
+    #funFact {
+      margin-bottom: 30px;
+      font-size: 1.3em;
+      color: #ffffff;
+      min-height: 3em;
+    }
+
     @media (max-width: 600px) {
       input, .form-group input {
+        width: 90% !important;
+      }
+      .suggestions {
         width: 90% !important;
       }
     }
@@ -160,12 +166,12 @@
 <body>
   <h1>Chickenpass</h1>
 
-  <!-- Search bar -->
+  <div id="funFact">💡 Loading...</div>
+
   <input type="text" id="searchInput" placeholder="Search Google or enter a URL..." autocomplete="off" />
   <button onclick="handleSearch()">Go</button>
-  <div class="suggestions" id="suggestions" style="display:none;"></div>
+  <div class="suggestions" id="suggestions"></div>
 
-  <!-- Quick links -->
   <div class="quick-links" id="quickLinks">
     <a class="quick-link" href="https://poki.com" target="_blank">Poki</a>
     <a class="quick-link" href="https://google.com" target="_blank">Google</a>
@@ -173,10 +179,8 @@
     <a class="quick-link" href="https://coolmathgames.com" target="_blank">Coolmath Games</a>
   </div>
 
-  <!-- Add quick link button -->
   <button onclick="toggleAddForm()">➕ Add Custom Quick Link</button>
 
-  <!-- Add quick link form -->
   <div id="addForm">
     <div class="form-group">
       <input type="text" id="linkName" placeholder="Link name (e.g., GitHub)" />
@@ -190,7 +194,24 @@
   <script>
     const searchInput = document.getElementById('searchInput');
     const suggestions = document.getElementById('suggestions');
+    const quickLinksContainer = document.getElementById('quickLinks');
+    const funFactDiv = document.getElementById('funFact');
     let selectedIndex = -1;
+
+    const userLinksKey = 'userQuickLinks';
+
+    async function fetchFunFact() {
+      try {
+        const res = await fetch('https://raw.githubusercontent.com/code-andrewy/cooltext/refs/heads/main/text');
+        const text = await res.text();
+        const facts = text.split('\n').filter(f => f.trim() !== '');
+        const randomFact = facts[Math.floor(Math.random() * facts.length)];
+        funFactDiv.textContent = " " + randomFact;
+      } catch (error) {
+        funFactDiv.textContent = "Could not load. 😞";
+        console.error('Fun fact fetch error:', error);
+      }
+    }
 
     function handleSearch() {
       const input = searchInput.value.trim();
@@ -200,7 +221,6 @@
         const url = input.startsWith('http') ? input : 'https://' + input;
         window.open(url, '_blank');
       } else {
-        // Use Google search here
         const searchUrl = 'https://www.google.com/search?q=' + encodeURIComponent(input);
         window.open(searchUrl, '_blank');
       }
@@ -216,13 +236,11 @@
       }
 
       try {
-        // Wikipedia API for suggestions (easy CORS)
         const url = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(inputVal)}&limit=10&namespace=0&format=json&origin=*`;
         const res = await fetch(url);
         const data = await res.json();
 
-        const suggestionsArray = data[1]; // suggestion strings
-
+        const suggestionsArray = data[1];
         if (suggestionsArray.length === 0) {
           suggestions.style.display = 'none';
           suggestions.innerHTML = '';
@@ -245,13 +263,76 @@
         });
 
         suggestions.style.display = 'block';
-
       } catch (error) {
-        console.error('Error fetching suggestions:', error);
+        console.error('Suggestions error:', error);
         suggestions.style.display = 'none';
         suggestions.innerHTML = '';
       }
     }
+
+    function toggleAddForm() {
+      document.getElementById('addForm').classList.toggle('show');
+    }
+
+    function addQuickLink() {
+      const name = document.getElementById('linkName').value.trim();
+      const url = document.getElementById('linkURL').value.trim();
+      if (!name || !url) return;
+
+      const fullUrl = url.startsWith('http') ? url : 'https://' + url;
+      const newLink = { name, url: fullUrl };
+      saveUserLink(newLink);
+      renderUserLink(newLink);
+
+      document.getElementById('linkName').value = '';
+      document.getElementById('linkURL').value = '';
+      document.getElementById('addForm').classList.remove('show');
+    }
+
+    function renderUserLink(link) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'quick-link';
+
+      const linkElem = document.createElement('a');
+      linkElem.href = link.url;
+      linkElem.textContent = link.name;
+      linkElem.target = '_blank';
+      linkElem.style.color = 'white';
+      linkElem.style.textDecoration = 'none';
+
+      const remove = document.createElement('span');
+      remove.className = 'remove';
+      remove.textContent = '🗑';
+      remove.onclick = () => {
+        wrapper.remove();
+        removeUserLink(link.url);
+      };
+
+      wrapper.appendChild(linkElem);
+      wrapper.appendChild(remove);
+      quickLinksContainer.appendChild(wrapper);
+    }
+
+    function saveUserLink(link) {
+      const links = JSON.parse(localStorage.getItem(userLinksKey)) || [];
+      links.push(link);
+      localStorage.setItem(userLinksKey, JSON.stringify(links));
+    }
+
+    function removeUserLink(url) {
+      let links = JSON.parse(localStorage.getItem(userLinksKey)) || [];
+      links = links.filter(link => link.url !== url);
+      localStorage.setItem(userLinksKey, JSON.stringify(links));
+    }
+
+    function loadUserLinks() {
+      const links = JSON.parse(localStorage.getItem(userLinksKey)) || [];
+      links.forEach(renderUserLink);
+    }
+
+    // Initialization
+    loadUserLinks();
+    fetchFunFact();
 
     searchInput.addEventListener('input', showSuggestions);
 
@@ -281,43 +362,6 @@
         suggestions.style.display = 'none';
       }
     });
-
-    function toggleAddForm() {
-      document.getElementById('addForm').classList.toggle('show');
-    }
-
-    function addQuickLink() {
-      const name = document.getElementById('linkName').value.trim();
-      const url = document.getElementById('linkURL').value.trim();
-      if (!name || !url) return;
-
-      const container = document.getElementById('quickLinks');
-
-      const wrapper = document.createElement('div');
-      wrapper.className = 'quick-link';
-      wrapper.style.textDecoration = 'none';
-
-      const link = document.createElement('a');
-      link.href = url.startsWith('http') ? url : 'https://' + url;
-      link.target = '_blank';
-      link.textContent = name;
-      link.style.color = 'white';
-      link.style.textDecoration = 'none';
-
-      const remove = document.createElement('span');
-      remove.className = 'remove';
-      remove.textContent = '🗑';
-      remove.title = 'Remove';
-      remove.onclick = () => container.removeChild(wrapper);
-
-      wrapper.appendChild(link);
-      wrapper.appendChild(remove);
-      container.appendChild(wrapper);
-
-      document.getElementById('linkName').value = '';
-      document.getElementById('linkURL').value = '';
-      document.getElementById('addForm').classList.remove('show');
-    }
   </script>
 </body>
 </html>
