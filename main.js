@@ -1,1 +1,1 @@
-window.location.href="https://code-andrewy.github.io/schooltest/index.html"
+window.location.href="https://chickenman.glitch.me/"
