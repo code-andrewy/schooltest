@@ -1,1 +1,1 @@
-window.location.href="https://chickenman.glitch.me/"
+window.location.href="window.location.href="https://code-andrewy.github.io/jumpman64beta/search.html"
